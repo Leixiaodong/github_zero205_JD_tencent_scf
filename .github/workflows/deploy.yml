@@ -2,7 +2,7 @@ name: Deploy(部署到云) #部署脚本每次执行就是部署最新代码上�
 on:
   workflow_dispatch:
   schedule:
-    - cron: '10 1,8,15 * * *'
+    - cron: '26 1,8,15 * * *'
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -14,19 +14,19 @@ jobs:
           ref: 'config'
       - name: clone
         run: |
-          git clone --single-branch --branch main https://github.com/zero205/JD_tencent_scf.git
-          mv JD_tencent_scf/backUp/sendNotify.js JD_tencent_scf
+          git clone --single-branch --branch main https://github.com/Leixiaodong/github_zero205_JD_tencent_scf.git
+          mv github_zero205_JD_tencent_scf/backUp/sendNotify.js github_zero205_JD_tencent_scf
       - name: Pre Tasks
         env:
           EXPERIMENT: ${{ secrets.EXPERIMENT }}
         run: |
           for i in 'JRBODY.txt' '.env';do  
-              mv $i JD_tencent_scf && echo move $i || echo Not Have $i;
+              mv $i github_zero205_JD_tencent_scf && echo move $i || echo Not Have $i;
           done
           if [ -d diy ];
           then
             echo 'Dir diy exist, move contents'
-            mv -f diy/* JD_tencent_scf/
+            mv -f diy/* github_zero205_JD_tencent_scf/
           fi;
           if [ -f diy.sh ];
           then
@@ -35,12 +35,12 @@ jobs:
           fi;
       - uses: actions/setup-node@v2
       - name: install dependency
-        working-directory: ./JD_tencent_scf
+        working-directory: ./github_zero205_JD_tencent_scf
         run: |
           npm i
           npm i -g serverless
       - name: set serverless.yml and push env
-        working-directory: ./JD_tencent_scf
+        working-directory: ./github_zero205_JD_tencent_scf
         env:
           TENCENT_REGION: ${{ secrets.SCF_REGION }}
           TENCENT_FUNCTION_NAME: ${{ secrets.TENCENT_FUNCTION_NAME }}
@@ -62,7 +62,7 @@ jobs:
           parameter=${parameter::-1}
           grep -E "^($parameter):" < ../config.yml | sed 's/: /=/' | while read line;do    echo $line >> $GITHUB_ENV;done
       - name: Check Visibility
-        working-directory: ./JD_tencent_scf
+        working-directory: ./github_zero205_JD_tencent_scf
         if: ${{ github.event_name == 'workflow_dispatch' && !github.event.repository.private}}
         run: |
           echo 'Not a private repo!!! Please change to private!'
@@ -70,10 +70,10 @@ jobs:
           node notify.js
           rm -rf notify.js
 #       - name: version check
-#         working-directory: ./JD_tencent_scf
+#         working-directory: ./github_zero205_JD_tencent_scf
 #         run: |
 #           sls info | grep Nodejs16.13 && sls remove
       - name: deploy
-        working-directory: ./JD_tencent_scf
+        working-directory: ./github_zero205_JD_tencent_scf
         run: |
             (! (sls deploy | grep -E '错误信息|Error')) && echo '部署成功' || (echo '部署失败,可以在自己私库页面寻找常见问题解决办法(FAQ)'; echo 'require("./sendNotify").sendNotify("云函数部署异常！请重试","进入私库页面点击Action,进入对应action查看deploy步骤日志\n自己私库下方readme有常见问题解决方法",{ url: process.env.GITHUB_SERVER_URL + "/" + process.env.GITHUB_REPOSITORY + "/actions/runs/" + process.env.GITHUB_RUN_ID + "?check_suite_focus=true" })' > notify.js; node notify.js; exit 1) 
